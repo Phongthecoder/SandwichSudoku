@@ -1,0 +1,176 @@
+import gurobipy as gp
+from gurobipy import GRB
+import numpy as np
+import json
+
+'''model = gp.model('SandwichSudokuSolver')
+size = 9
+T = model.addMVar(shape = (size, size, size), lb = 0, ub = 1, vtype = GRB.INTEGER, name = "foolx")'''
+
+#get information of the board from json file
+def get_board(path):
+    f = open(path)
+    data = json.load(f)
+    size = data["size"]
+    numbers_on_board = data["existence_numbers_on_board"]
+    numbers_on_rows = data["numbers_on_rows"]
+    numbers_on_columns = data["numbers_on_columns"]
+    return size, numbers_on_board, numbers_on_rows, numbers_on_columns
+
+#The conditions that every cell is filled with a number from 1 to 9:
+def all_cell_filled_conditions(T, size):
+    for i in range(size):
+        for j in range(size):
+            sum = 0
+            for k in range(size):
+                sum += T[i][j][k]
+            model.addConstr(sum == 1)
+
+# The conditions that numbers on the same row must be different
+def different_conditions_rows(T,size):
+    for k in range(size):
+        for i in range(size):
+            sum = 0
+            for j in range(size):
+                sum += T[i][j][k]
+            model.addConstr(sum == 1)
+            
+# The conditions that numbers on the same column must be different
+def different_conditions_column(T,size):
+    for k in range(size):
+        for i in range(size):
+            sum = 0
+            for j in range(size):
+                sum += T[j][i][k]
+            model.addConstr(sum == 1)
+            
+#The conditions that numbers in a 3x3 fixed region must 
+def different_condition_region(T,size):
+    for k in range(size):
+        for i in range(0, 9, 3):
+            for j in range(0, 9, 3):
+                sum = 0
+                for x in range(0,3):
+                    for y in range(0,3):
+                        sum += T[i+x][j+y][k]
+                model.addConstr(sum == 1)
+                
+#The conditions for numbers that are already filled in the board
+def fill_numbers(T, size, numbers_on_board):
+    for i in range(size):
+        for j in range(size):
+            k = numbers_on_board[i][j]
+            if k != 0:
+                model.addConstr(T[i][j][k-1] == 1)
+
+#The sandwich condition on rows
+def sandwich_rows_condition(T, size, numbers_on_rows):
+    for i in range(size):
+        s = numbers_on_rows[i]
+        for m in range(size):
+            for n in range(m, size):
+                sum = 0
+                for x in range(m, n+1):
+                    for k in range(1, size+1):
+                        sum += T[i][x][k-1]*k
+                sum += (10**2) * (T[i][m][0]+T[i][n][size-1])
+                model.addConstr(sum - s - 10 <= 2* (10**2))
+                model.addConstr(sum - s - 10 >= -2*(10**2))
+    
+    
+    for i in range(size):
+        s = numbers_on_rows[i]
+        for m in range(size):
+            for n in range(m, size):
+                sum = 0
+                for x in range(m, n+1):
+                    for k in range(1, size+1):
+                        sum += T[i][x][k-1]*k
+                sum += (10**2) * (T[i][n][0]+T[i][m][size-1])
+                model.addConstr(sum - s - 10 <= 2* (10**2))
+                model.addConstr(sum - s - 10 >= -2*(10**2))
+                
+#The sandwich condition on columns:
+def sandwich_columns_condition(T,size, numbers_on_columns):
+    for i in range(size):
+        s = numbers_on_columns[i]
+        for m in range(size):
+            for n in range(m, size):
+                sum = 0
+                for x in range(m, n+1):
+                    for k in range(1, size+1):
+                        sum += T[x][i][k-1]*k
+                sum += (10**2) * (T[m][i][0]+T[n][i][size-1])
+                model.addConstr(sum - s - 10 <= 2* (10**2))
+                model.addConstr(sum - s - 10 >= -2*(10**2))
+    
+    
+    for i in range(size):
+        s = numbers_on_columns[i]
+        for m in range(size):
+            for n in range(m, size):
+                sum = 0
+                for x in range(m, n+1):
+                    for k in range(1, size+1):
+                        sum += T[x][i][k-1]*k
+                sum += (10**2) * (T[n][i][0]+T[m][i][size-1])
+                model.addConstr(sum - s - 10 <= 2* (10**2))
+                model.addConstr(sum - s - 10 >= -2*(10**2))
+
+                
+    
+
+
+
+
+if __name__ == "__main__":
+    model = gp.Model('SandwichSudokuSolver')
+    size, numbers_on_board, numbers_on_rows, numbers_on_columns = get_board('board_data1.json')
+    T = model.addMVar(shape = (size, size, size), lb = 0, ub = 1, vtype = GRB.INTEGER, name = "x") #shape of T: (row, column, variables in each cell)
+    
+    all_cell_filled_conditions(T, size)
+    different_conditions_rows(T,size)
+    different_conditions_column(T,size)
+    different_condition_region(T,size)
+    fill_numbers(T, size, numbers_on_board)
+    sandwich_rows_condition(T, size, numbers_on_rows)
+    sandwich_columns_condition(T,size, numbers_on_columns)
+    
+    model.setObjective(1, sense = GRB.MAXIMIZE)
+
+    model.optimize()
+    print('-' * 50)
+    if model.status == GRB.OPTIMAL:
+        print('The status meaning is OPTIMAL')
+        X = [[0, 9, 0, 0, 0, 0, 0, 0, 0],
+            [8, 0, 0, 0, 0, 0, 0, 0, 0],
+            [2, 0, 0, 0, 0, 0, 0, 0, 0],
+            [0, 8, 0, 0, 0, 0, 1, 0, 5],
+            [0, 0, 0, 0, 0, 0, 0, 0, 0],
+            [5, 0, 9, 0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 0, 0, 6],
+            [0, 0, 0, 0, 0, 0, 0, 0, 2],
+            [0, 0, 0, 0, 0, 0, 0, 9, 0]]
+        '''for i in range(size):
+            for j in range(size):
+                for k in range(size):
+                    if T[i][j][k] == 1:
+                        X[i][j][k] = k+1
+                
+        print(X)'''
+        
+    values = model.getAttr("X", model.getVars())
+    print(values)
+    print(T)
+    
+    
+    
+    
+
+        
+    
+                     
+            
+    
+
+

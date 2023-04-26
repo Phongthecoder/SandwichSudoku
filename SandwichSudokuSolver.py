@@ -36,7 +36,7 @@ def different_conditions_rows(T,size):
             model.addConstr(sum == 1)
             
 # The conditions that numbers on the same column must be different
-def different_conditions_column(T,size):
+def different_conditions_columns(T,size):
     for k in range(size):
         for i in range(size):
             sum = 0
@@ -45,7 +45,7 @@ def different_conditions_column(T,size):
             model.addConstr(sum == 1)
             
 #The conditions that numbers in a 3x3 fixed region must 
-def different_condition_region(T,size):
+def different_condition_regions(T,size):
     for k in range(size):
         for i in range(0, 9, 3):
             for j in range(0, 9, 3):
@@ -73,9 +73,10 @@ def sandwich_rows_condition(T, size, numbers_on_rows):
                 for x in range(m, n+1):
                     for k in range(1, size+1):
                         sum += T[i][x][k-1]*k
-                sum += (10**2) * (T[i][m][0]+T[i][n][size-1])
-                model.addConstr(sum - s - 10 <= 2* (10**2))
-                model.addConstr(sum - s - 10 >= -2*(10**2))
+                sum += (10**3) * (T[i][m][0]+T[i][n][size-1])
+                model.addConstr(sum - s - 10 <= 2* (10**3))
+                sum -= 2*(10**3) * (T[i][m][0]+T[i][n][size-1])
+                model.addConstr(sum - s - 10 >= -2*(10**3))
     
     
     for i in range(size):
@@ -86,9 +87,10 @@ def sandwich_rows_condition(T, size, numbers_on_rows):
                 for x in range(m, n+1):
                     for k in range(1, size+1):
                         sum += T[i][x][k-1]*k
-                sum += (10**2) * (T[i][n][0]+T[i][m][size-1])
-                model.addConstr(sum - s - 10 <= 2* (10**2))
-                model.addConstr(sum - s - 10 >= -2*(10**2))
+                sum += (10**3) * (T[i][n][0]+T[i][m][size-1])
+                model.addConstr(sum - s - 10 <= 2* (10**3))
+                sum -= 2*(10**3) * (T[i][n][0]+T[i][m][size-1])
+                model.addConstr(sum - s - 10 >= -2*(10**3))
                 
 #The sandwich condition on columns:
 def sandwich_columns_condition(T,size, numbers_on_columns):
@@ -100,9 +102,10 @@ def sandwich_columns_condition(T,size, numbers_on_columns):
                 for x in range(m, n+1):
                     for k in range(1, size+1):
                         sum += T[x][i][k-1]*k
-                sum += (10**2) * (T[m][i][0]+T[n][i][size-1])
-                model.addConstr(sum - s - 10 <= 2* (10**2))
-                model.addConstr(sum - s - 10 >= -2*(10**2))
+                sum += (10**3) * (T[m][i][0]+T[n][i][size-1])
+                model.addConstr(sum - s - 10 <= 2* (10**3))
+                sum -= 2*(10**3) * (T[m][i][0]+T[n][i][size-1])
+                model.addConstr(sum - s - 10 >= -2*(10**3))
     
     
     for i in range(size):
@@ -113,9 +116,22 @@ def sandwich_columns_condition(T,size, numbers_on_columns):
                 for x in range(m, n+1):
                     for k in range(1, size+1):
                         sum += T[x][i][k-1]*k
-                sum += (10**2) * (T[n][i][0]+T[m][i][size-1])
-                model.addConstr(sum - s - 10 <= 2* (10**2))
-                model.addConstr(sum - s - 10 >= -2*(10**2))
+                sum += (10**3) * (T[n][i][0]+T[m][i][size-1])
+                model.addConstr(sum - s - 10 <= 2* (10**3))
+                sum -= 2*(10**3) * (T[n][i][0]+T[m][i][size-1])
+                model.addConstr(sum - s - 10 >= -2*(10**3))
+
+#print the result
+def print_board(size, values):
+    for i in range(0, size):
+        for j in range(0, size):
+            for k in range(0, size):
+                if values[81*i + 9*j + k] == 1:
+                    X[i][j] = k+1
+    
+    for i in range(len(X)):
+        print(X[i])
+    
 
                 
     
@@ -130,8 +146,8 @@ if __name__ == "__main__":
     
     all_cell_filled_conditions(T, size)
     different_conditions_rows(T,size)
-    different_conditions_column(T,size)
-    different_condition_region(T,size)
+    different_conditions_columns(T,size)
+    different_condition_regions(T,size)
     fill_numbers(T, size, numbers_on_board)
     sandwich_rows_condition(T, size, numbers_on_rows)
     sandwich_columns_condition(T,size, numbers_on_columns)
@@ -160,8 +176,8 @@ if __name__ == "__main__":
         print(X)'''
         
     values = model.getAttr("X", model.getVars())
-    print(values)
-    print(T)
+    #print(values)
+    print_board(size, values)
     
     
     
